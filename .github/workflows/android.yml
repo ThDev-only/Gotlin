@@ -23,7 +23,7 @@ jobs:
     - name: Set up NDK
       uses: nttld/setup-ndk@v1
       with:
-        ndk-version: r26d
+        ndk-version: r21d
         link-to-sdk: true
 
     - name: Grant execute permission for gradlew
