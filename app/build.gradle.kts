@@ -53,9 +53,12 @@ tasks.register<Exec>("generateGoSharedLibs") {
 
     val goDir = "${projectDir}/src/main/go"
     val outputDir = "${buildDir}/intermediates/go-libs"
-    val goMobilePath = "${System.getProperty("user.home")}/go/bin/gomobile" // Adjust the path if necessary
+    val goMobilePath = "/home/runner/go/bin/gomobile"
 
     doFirst {
+        if (!File(goMobilePath).exists()) {
+            throw GradleException("gomobile binary not found at $goMobilePath. Ensure it is installed and try again.")
+        }
         mkdir(outputDir)
     }
 
