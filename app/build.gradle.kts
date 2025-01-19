@@ -1,3 +1,6 @@
+import java.io.File
+import java.net.URL
+
 
 plugins {
     id("com.android.application")
@@ -43,6 +46,151 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
     kotlinOptions.jvmTarget = "11"
 }
 
+/*
+tasks.register<Exec>("generateGoSharedLibs") {
+    description = "Generate archives"
+    group = "build"
+
+    val goDir = "${projectDir}/src/main/go"
+    val outputDir = "${buildDir}/intermediates/go-libs"
+
+    doFirst {
+        mkdir(outputDir)
+    }
+
+    commandLine("gomobile", "bind", "-target=android", "-o", outputDir, goDir)
+}
+
+*/
+
+tasks.register("installGo") {
+    doLast {
+        val goVersion = "1.23.5" // Define the desired Go version
+        val goBinary = "go$goVersion.linux-arm64.tar.gz" // Change for the desired system
+        val url = "https://golang.org/dl/$goBinary"
+
+        // Define the directory where Go will be installed
+        val installDir = File(System.getProperty("user.home"), "")
+        if (!installDir.exists()) {
+            installDir.mkdirs()
+        }
+
+        // Installation file path
+        val goFile = File(installDir, "$goVersion.tar.gz")
+        val goBinDir = File(installDir, "go/bin")
+
+        // Check if Go is already installed
+        if (goBinDir.exists() && goBinDir.isDirectory) {
+            println("Go $goVersion is already installed at: ${installDir.absolutePath}")
+            return@doLast
+        }
+
+        // Download Go
+        println("Downloading Go $goVersion...")
+        val download = URL(url).openStream()
+        goFile.outputStream().use { outputStream ->
+            download.copyTo(outputStream)
+        }
+
+        // Extract Go
+        println("Extracting Go...")
+        val tarCommand = "tar -C ${installDir.absolutePath} -xzf ${goFile.absolutePath}"
+        val process = Runtime.getRuntime().exec(tarCommand)
+        process.waitFor()
+
+        println("Go $goVersion successfully installed at: ${installDir.absolutePath}")
+    }
+}
+
+tasks.register("installGoMobile") {
+    doLast {
+        val goVersion = "1.23.5" // Define the desired Go version
+        val goPath = File(System.getProperty("user.home"), "")
+
+        // Check if Go is installed
+        val goBinDir = File(goPath, "go/bin")
+        if (!goBinDir.exists() || !goBinDir.isDirectory) {
+            println("Go is not correctly installed. Run the 'installGo' task first.")
+            return@doLast
+        }
+
+        // Absolute path to Go binary
+        val goBinPath = File(goBinDir, "go").absolutePath
+        
+        println("$goBinPath")
+
+        // Check Go binary permissions
+        val goBinFile = File(goBinPath)
+        if (!goBinFile.canExecute()) {
+            println("Go binary does not have execute permission. Trying to fix...")
+            val chmodProcess = Runtime.getRuntime().exec("chmod +x $goBinPath")
+            chmodProcess.waitFor()
+            if (chmodProcess.exitValue() != 0) {
+                println("Error while trying to set execute permission to Go.")
+                return@doLast
+            }
+        }
+
+        println("Checking if Go is accessible...")
+        val goVersionCommand = ProcessBuilder(goBinPath, "version")
+        val goVersionProcess = goVersionCommand.start()
+
+        // Get standard output
+        val goVersionOutput = goVersionProcess.inputStream.bufferedReader().readText()
+        // Get error output if any
+        val goVersionErrorOutput = goVersionProcess.errorStream.bufferedReader().readText()
+
+        goVersionProcess.waitFor()
+
+        if (goVersionProcess.exitValue() == 0) {
+            println("Go is accessible: $goVersionOutput")
+        } else {
+            // Display the error
+            println("Error accessing Go. Please check the installation.")
+            println("Error output: $goVersionErrorOutput")
+            return@doLast
+        }
+
+        // Install gomobile
+        try {
+            println("Installing gomobile...")
+            val gomobileInstallCommand = ProcessBuilder(goBinPath, "install", "golang.org/x/mobile/cmd/gomobile@latest")
+            val gomobileProcess = gomobileInstallCommand.start()
+
+            // Capture standard output (if any)
+            val gomobileOutput = gomobileProcess.inputStream.bufferedReader().readText()
+            // Capture error output
+            val gomobileErrorOutput = gomobileProcess.errorStream.bufferedReader().readText()
+
+            gomobileProcess.waitFor()
+
+            if (gomobileProcess.exitValue() == 0) {
+                println("gomobile installed successfully!")
+                println("Output: $gomobileOutput")
+            } else {
+                println("Error installing gomobile. Please check Go and try again.")
+                println("Error: $gomobileErrorOutput")
+            }
+        } catch (e: Exception) {
+            println("Error trying to install gomobile: ${e.message}")
+        }
+    }
+}
+
+tasks.register<Copy>("copySharedLibs") {
+    description = "Copies the generated .so files to the libs folder"
+    group = "build"
+
+    from("${buildDir}/intermediates/go-libs/armeabi-v7a/")
+    into("${projectDir}/src/main/jniLibs/armeabi-v7a/")
+
+    from("${buildDir}/intermediates/go-libs/arm64-v8a/")
+    into("${projectDir}/src/main/jniLibs/arm64-v8a/")
+}
+
+tasks.named("preBuild") {
+    dependsOn("installGo", "installGoMobile")
+}
 dependencies {
 
 
