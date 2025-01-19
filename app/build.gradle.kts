@@ -133,6 +133,8 @@ tasks.register("installGo") {
 
 tasks.register("installGoMobile") {
     doLast {
+        
+        dependsOn("installGo")
         val goVersion = "1.23.5" // Define the desired Go version
         val goPath = File(System.getProperty("user.home"), "")
 
