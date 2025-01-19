@@ -212,7 +212,7 @@ tasks.register<Copy>("copySharedLibs") {
 }
 
 tasks.named("preBuild") {
-    dependsOn("installGo", "installGoMobile", "generateGoSharedLibs", "copySharedLibs")
+    dependsOn("installGo", "installGoMobile")
 }
 dependencies {
 
