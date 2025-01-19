@@ -48,17 +48,18 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 
 
 tasks.register<Exec>("generateGoSharedLibs") {
-    description = "Generate archives"
+    description = "Generate shared libraries using gomobile"
     group = "build"
 
     val goDir = "${projectDir}/src/main/go"
     val outputDir = "${buildDir}/intermediates/go-libs"
+    val goMobilePath = "${System.getProperty("user.home")}/go/bin/gomobile" // Adjust the path if necessary
 
     doFirst {
         mkdir(outputDir)
     }
 
-    commandLine("gomobile", "bind", "-target=android", "-o", outputDir, goDir)
+    commandLine(goMobilePath, "bind", "-target=android", "-o", outputDir, goDir)
 }
 
 
