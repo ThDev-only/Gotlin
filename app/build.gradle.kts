@@ -66,11 +66,28 @@ tasks.register<Exec>("generateGoSharedLibs") {
 tasks.register("installGo") {
     doLast {
         val goVersion = "1.23.5" // Define the desired Go version
-        val goBinary = "go$goVersion.linux-arm64.tar.gz" // Change for the desired system
+
+        // Detect the operating system and architecture
+        val os = System.getProperty("os.name").toLowerCase()
+        val arch = System.getProperty("os.arch").toLowerCase()
+
+        // Determine the Go binary URL based on the system
+        val goBinary: String = when {
+            os.contains("linux") && arch.contains("amd64") -> "go$goVersion.linux-amd64.tar.gz"
+            os.contains("linux") && arch.contains("aarch64") -> "go$goVersion.linux-arm64.tar.gz"
+            os.contains("mac") && arch.contains("amd64") -> "go$goVersion.darwin-amd64.tar.gz"
+            os.contains("mac") && arch.contains("aarch64") -> "go$goVersion.darwin-arm64.tar.gz"
+            os.contains("windows") && arch.contains("amd64") -> "go$goVersion.windows-amd64.zip"
+            else -> {
+                println("Unsupported OS or architecture: $os, $arch")
+                return@doLast
+            }
+        }
+
         val url = "https://golang.org/dl/$goBinary"
 
         // Define the directory where Go will be installed
-        val installDir = File(System.getProperty("user.home"), "")
+        val installDir = File(System.getProperty("user.home"), "go")
         if (!installDir.exists()) {
             installDir.mkdirs()
         }
@@ -86,7 +103,7 @@ tasks.register("installGo") {
         }
 
         // Download Go
-        println("Downloading Go $goVersion...")
+        println("Downloading Go $goVersion for $os ($arch)...")
         val download = URL(url).openStream()
         goFile.outputStream().use { outputStream ->
             download.copyTo(outputStream)
@@ -94,7 +111,10 @@ tasks.register("installGo") {
 
         // Extract Go
         println("Extracting Go...")
-        val tarCommand = "tar -C ${installDir.absolutePath} -xzf ${goFile.absolutePath}"
+        val tarCommand = when {
+            os.contains("windows") -> "powershell -Command Expand-Archive -Path ${goFile.absolutePath} -DestinationPath ${installDir.absolutePath}"
+            else -> "tar -C ${installDir.absolutePath} -xzf ${goFile.absolutePath}"
+        }
         val process = Runtime.getRuntime().exec(tarCommand)
         process.waitFor()
 
