@@ -53,18 +53,22 @@ tasks.register<Exec>("generateGoSharedLibs") {
 
     val goDir = "${projectDir}/src/main/go"
     val outputDir = "${buildDir}/intermediates/go-libs"
-    val goMobilePath = "/home/runner/go/bin/gomobile"
 
     doFirst {
-        if (!File(goMobilePath).exists()) {
-            throw GradleException("gomobile binary not found at $goMobilePath. Ensure it is installed and try again.")
+        // Retrieve the gomobile path from the global variable
+        val gomobilePath = project.extra["gomobilePath"] as? String
+            ?: throw GradleException("gomobile path not set. Run 'installGoMobile' first.")
+
+        if (!File(gomobilePath).exists()) {
+            throw GradleException("gomobile binary not found at $gomobilePath. Ensure it is installed and try again.")
         }
+
         mkdir(outputDir)
+
+        // Set the command line for execution
+        commandLine(gomobilePath, "bind", "-target=android", "-o", outputDir, goDir)
     }
-
-    commandLine(goMobilePath, "bind", "-target=android", "-o", outputDir, goDir)
 }
-
 
 tasks.register("installGo") {
     doLast {
@@ -137,38 +141,19 @@ tasks.register("installGoMobile") {
             return@doLast
         }
 
-        // Absolute path to Go binary
         val goBinPath = File(goBinDir, "go").absolutePath
-        
-        println("$goBinPath")
-
-        // Check Go binary permissions
-        val goBinFile = File(goBinPath)
-        if (!goBinFile.canExecute()) {
-            println("Go binary does not have execute permission. Trying to fix...")
-            val chmodProcess = Runtime.getRuntime().exec("chmod +x $goBinPath")
-            chmodProcess.waitFor()
-            if (chmodProcess.exitValue() != 0) {
-                println("Error while trying to set execute permission to Go.")
-                return@doLast
-            }
-        }
 
         println("Checking if Go is accessible...")
         val goVersionCommand = ProcessBuilder(goBinPath, "version")
         val goVersionProcess = goVersionCommand.start()
 
-        // Get standard output
+        // Get standard output and error output
         val goVersionOutput = goVersionProcess.inputStream.bufferedReader().readText()
-        // Get error output if any
         val goVersionErrorOutput = goVersionProcess.errorStream.bufferedReader().readText()
 
         goVersionProcess.waitFor()
 
-        if (goVersionProcess.exitValue() == 0) {
-            println("Go is accessible: $goVersionOutput")
-        } else {
-            // Display the error
+        if (goVersionProcess.exitValue() != 0) {
             println("Error accessing Go. Please check the installation.")
             println("Error output: $goVersionErrorOutput")
             return@doLast
@@ -180,19 +165,16 @@ tasks.register("installGoMobile") {
             val gomobileInstallCommand = ProcessBuilder(goBinPath, "install", "golang.org/x/mobile/cmd/gomobile@latest")
             val gomobileProcess = gomobileInstallCommand.start()
 
-            // Capture standard output (if any)
-            val gomobileOutput = gomobileProcess.inputStream.bufferedReader().readText()
-            // Capture error output
-            val gomobileErrorOutput = gomobileProcess.errorStream.bufferedReader().readText()
-
             gomobileProcess.waitFor()
 
             if (gomobileProcess.exitValue() == 0) {
                 println("gomobile installed successfully!")
-                println("Output: $gomobileOutput")
+                // Save gomobile path to a global variable
+                val gomobilePath = "$goBinDir/gomobile"
+                project.extra["gomobilePath"] = gomobilePath
+                println("Saved gomobile path: $gomobilePath")
             } else {
                 println("Error installing gomobile. Please check Go and try again.")
-                println("Error: $gomobileErrorOutput")
             }
         } catch (e: Exception) {
             println("Error trying to install gomobile: ${e.message}")
