@@ -87,7 +87,7 @@ tasks.register("installGo") {
         val url = "https://golang.org/dl/$goBinary"
 
         // Define the directory where Go will be installed
-        val installDir = File(System.getProperty("user.home"), "go")
+        val installDir = File(System.getProperty("user.home"), "")
         if (!installDir.exists()) {
             installDir.mkdirs()
         }
