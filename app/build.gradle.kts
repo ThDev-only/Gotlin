@@ -48,6 +48,8 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 
 
 tasks.register<Exec>("generateGoSharedLibs") {
+
+    dependsOn("installGoMobile")
     description = "Generate shared libraries using gomobile"
     group = "build"
 
