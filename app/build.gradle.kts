@@ -46,7 +46,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
     kotlinOptions.jvmTarget = "11"
 }
 
-/*
+
 tasks.register<Exec>("generateGoSharedLibs") {
     description = "Generate archives"
     group = "build"
@@ -61,7 +61,6 @@ tasks.register<Exec>("generateGoSharedLibs") {
     commandLine("gomobile", "bind", "-target=android", "-o", outputDir, goDir)
 }
 
-*/
 
 tasks.register("installGo") {
     doLast {
@@ -209,7 +208,7 @@ tasks.register<Copy>("copySharedLibs") {
 }
 
 tasks.named("preBuild") {
-    dependsOn("installGo", "installGoMobile")
+    dependsOn("installGo", "installGoMobile", "generateGoSharedLibs", "copySharedLibs")
 }
 dependencies {
 
